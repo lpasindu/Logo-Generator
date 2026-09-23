@@ -14,7 +14,7 @@ import {
   Globe2,
 } from 'lucide-react';
 import { COUNTRIES, Country } from '../data/countries';
-import { BadgeStyleConfig, BadgeTextConfig, CustomFormatConfig } from '../types/badge';
+import { BadgeStyleConfig, BadgeTextConfig, CustomFormatConfig, CountryCustomSettings } from '../types/badge';
 import { renderBadgeToCanvas, downloadCanvasAsPng } from '../services/badgeRenderer';
 
 interface BatchGeneratorModalProps {
@@ -23,6 +23,7 @@ interface BatchGeneratorModalProps {
   style: BadgeStyleConfig;
   textConfig: BadgeTextConfig;
   customConfig?: CustomFormatConfig;
+  countryCustomizations?: Record<string, CountryCustomSettings>;
 }
 
 interface GeneratedItem {
@@ -38,6 +39,7 @@ export const BatchGeneratorModal: React.FC<BatchGeneratorModalProps> = ({
   style,
   textConfig,
   customConfig,
+  countryCustomizations,
 }) => {
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(
     () => new Set(COUNTRIES.map((c) => c.code))
@@ -110,13 +112,34 @@ export const BatchGeneratorModal: React.FC<BatchGeneratorModalProps> = ({
       setCurrentCountryName(c.name);
       setProgressCount(i + 1);
 
+      // Country-specific isolated positioning or neutral default
+      const cSettings = countryCustomizations?.[c.code];
+      const countryTextConfig: BadgeTextConfig = {
+        ...textConfig,
+        flagOffsetX: cSettings?.flagOffsetX ?? 0,
+        flagOffsetY: cSettings?.flagOffsetY ?? 0,
+        flagScale: cSettings?.flagScale ?? 1.0,
+        flagRotation: cSettings?.flagRotation ?? 0,
+        flagSource: cSettings?.flagSource ?? textConfig.flagSource ?? 'original_official',
+        topTextOffsetY: cSettings?.topTextOffsetY ?? 0,
+        topTextRotation: cSettings?.topTextRotation ?? 0,
+        bottomTextOffsetY: cSettings?.bottomTextOffsetY ?? 0,
+        bottomTextRotation: cSettings?.bottomTextRotation ?? 0,
+        topFontSize: cSettings?.topFontSize ?? textConfig.topFontSize,
+        bottomFontSize: cSettings?.bottomFontSize ?? textConfig.bottomFontSize,
+      };
+
+      const countryCustomConfig = cSettings?.customFlagUrl
+        ? { ...(customConfig || { imageSrc: null, imageElement: null, cropToCircle: true, centerX: 0.5, centerY: 0.5, flagRadius: 0.29, topRadius: 0.38, bottomRadius: 0.38, replaceCenterOnly: false, replaceTextAlso: true }), customFlagUrl: cSettings.customFlagUrl }
+        : customConfig;
+
       // Render badge
       await renderBadgeToCanvas(
         offscreenCanvas,
         c,
         style,
-        textConfig,
-        customConfig,
+        countryTextConfig,
+        countryCustomConfig,
         resolution
       );
 

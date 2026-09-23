@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Award,
   Sparkles,
@@ -10,6 +10,7 @@ import {
   Database,
   Undo2,
   Redo2,
+  Laptop,
 } from 'lucide-react';
 import { COUNTRIES, Country } from './data/countries';
 import {
@@ -17,6 +18,7 @@ import {
   BadgeTextConfig,
   CustomFormatConfig,
   ApiConfig,
+  CountryCustomSettings,
 } from './types/badge';
 import { BADGE_STYLES } from './services/badgeRenderer';
 import { BadgePreview } from './components/BadgePreview';
@@ -24,6 +26,8 @@ import { CountryPicker } from './components/CountryPicker';
 import { SettingsPanel } from './components/SettingsPanel';
 import { BatchGeneratorModal } from './components/BatchGeneratorModal';
 import { ApiIntegrationModal } from './components/ApiIntegrationModal';
+import { PortablePcModal } from './components/PortablePcModal';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { executeCustomApi } from './services/apiIntegrationService';
 
 interface HistorySnapshot {
@@ -32,6 +36,7 @@ interface HistorySnapshot {
   textConfig: BadgeTextConfig;
   customConfig?: CustomFormatConfig;
   customFlagUrl?: string;
+  countryCustomizations?: Record<string, CountryCustomSettings>;
 }
 
 export default function App() {
@@ -78,12 +83,218 @@ export default function App() {
   });
   const [customFlagUrl, setCustomFlagUrl] = useState<string | undefined>(undefined);
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
+  const [isPortableModalOpen, setIsPortableModalOpen] = useState(false);
 
   // Settings active tab
   const [activeSettingsTab, setActiveSettingsTab] = useState<'text' | 'position' | 'badge' | 'upload'>('text');
 
   // Batch generator modal open state
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+
+  // -------------------------------------------------------------
+  // PER-COUNTRY ISOLATED SETTINGS STORE
+  // (Changes to position/scale on one flag will never leak to others)
+  // -------------------------------------------------------------
+  const [countryCustomizations, setCountryCustomizations] = useState<Record<string, CountryCustomSettings>>(() => {
+    try {
+      const saved = localStorage.getItem('badge_studio_country_customizations_v1');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Persist isolated country configurations across browser sessions
+  useEffect(() => {
+    try {
+      localStorage.setItem('badge_studio_country_customizations_v1', JSON.stringify(countryCustomizations));
+    } catch (e) {
+      console.error('Failed to save country customizations to localStorage', e);
+    }
+  }, [countryCustomizations]);
+
+  // Is current selected country customized with non-default position/flag?
+  const isCurrentCountryCustomized = useMemo(() => {
+    const custom = countryCustomizations[selectedCountry.code];
+    if (!custom) return false;
+    return (
+      (custom.flagOffsetX !== undefined && custom.flagOffsetX !== 0) ||
+      (custom.flagOffsetY !== undefined && custom.flagOffsetY !== 0) ||
+      (custom.flagScale !== undefined && custom.flagScale !== 1.0) ||
+      (custom.flagRotation !== undefined && custom.flagRotation !== 0) ||
+      (custom.topTextOffsetY !== undefined && custom.topTextOffsetY !== 0) ||
+      (custom.bottomTextOffsetY !== undefined && custom.bottomTextOffsetY !== 0) ||
+      !!custom.customFlagUrl
+    );
+  }, [countryCustomizations, selectedCountry.code]);
+
+  // Set of country codes that have customized positions
+  const customizedCountryCodes = useMemo(() => {
+    const set = new Set<string>();
+    Object.entries(countryCustomizations).forEach(([code, custom]) => {
+      if (
+        (custom.flagOffsetX !== undefined && custom.flagOffsetX !== 0) ||
+        (custom.flagOffsetY !== undefined && custom.flagOffsetY !== 0) ||
+        (custom.flagScale !== undefined && custom.flagScale !== 1.0) ||
+        (custom.flagRotation !== undefined && custom.flagRotation !== 0) ||
+        (custom.topTextOffsetY !== undefined && custom.topTextOffsetY !== 0) ||
+        (custom.bottomTextOffsetY !== undefined && custom.bottomTextOffsetY !== 0) ||
+        !!custom.customFlagUrl
+      ) {
+        set.add(code);
+      }
+    });
+    return set;
+  }, [countryCustomizations]);
+
+  // Isolated switch to new country: saves previous country, loads target country's independent settings
+  const handleSelectCountry = useCallback((newCountry: Country) => {
+    if (newCountry.code === selectedCountry.code) return;
+
+    const currentCode = selectedCountry.code;
+    const currentSnapshotSettings: CountryCustomSettings = {
+      flagOffsetX: textConfig.flagOffsetX ?? 0,
+      flagOffsetY: textConfig.flagOffsetY ?? 0,
+      flagScale: textConfig.flagScale ?? 1.0,
+      flagRotation: textConfig.flagRotation ?? 0,
+      flagSource: textConfig.flagSource ?? 'original_official',
+      customFlagUrl: customFlagUrl,
+      topTextOffsetY: textConfig.topTextOffsetY ?? 0,
+      topTextRotation: textConfig.topTextRotation ?? 0,
+      bottomTextOffsetY: textConfig.bottomTextOffsetY ?? 0,
+      bottomTextRotation: textConfig.bottomTextRotation ?? 0,
+      topFontSize: textConfig.topFontSize,
+      bottomFontSize: textConfig.bottomFontSize,
+    };
+
+    setCountryCustomizations((prev) => {
+      const updated = {
+        ...prev,
+        [currentCode]: currentSnapshotSettings,
+      };
+
+      // Retrieve new country's stored settings (if any exist)
+      const nextSettings = updated[newCountry.code];
+
+      // Switch to new country
+      setSelectedCountry(newCountry);
+      setCustomFlagUrl(nextSettings?.customFlagUrl);
+
+      // Apply isolated values for the new country; if never customized, use clean neutral center
+      setTextConfig((prevConfig) => ({
+        ...prevConfig,
+        flagOffsetX: nextSettings?.flagOffsetX ?? 0,
+        flagOffsetY: nextSettings?.flagOffsetY ?? 0,
+        flagScale: nextSettings?.flagScale ?? 1.0,
+        flagRotation: nextSettings?.flagRotation ?? 0,
+        flagSource: nextSettings?.flagSource ?? 'original_official',
+        topTextOffsetY: nextSettings?.topTextOffsetY ?? 0,
+        topTextRotation: nextSettings?.topTextRotation ?? 0,
+        bottomTextOffsetY: nextSettings?.bottomTextOffsetY ?? 0,
+        bottomTextRotation: nextSettings?.bottomTextRotation ?? 0,
+        topFontSize: nextSettings?.topFontSize ?? prevConfig.fontSize,
+        bottomFontSize: nextSettings?.bottomFontSize ?? prevConfig.fontSize,
+      }));
+
+      return updated;
+    });
+  }, [selectedCountry.code, textConfig, customFlagUrl]);
+
+  // Updating textConfig updates local state and immediately isolates to active country
+  const handleTextConfigChange = useCallback((updater: BadgeTextConfig | ((prev: BadgeTextConfig) => BadgeTextConfig)) => {
+    setTextConfig((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      // Record any flag-specific or positional adjustments to this country's isolated record
+      setCountryCustomizations((prevCustoms) => ({
+        ...prevCustoms,
+        [selectedCountry.code]: {
+          flagOffsetX: next.flagOffsetX ?? 0,
+          flagOffsetY: next.flagOffsetY ?? 0,
+          flagScale: next.flagScale ?? 1.0,
+          flagRotation: next.flagRotation ?? 0,
+          flagSource: next.flagSource ?? 'original_official',
+          customFlagUrl: customFlagUrl,
+          topTextOffsetY: next.topTextOffsetY ?? 0,
+          topTextRotation: next.topTextRotation ?? 0,
+          bottomTextOffsetY: next.bottomTextOffsetY ?? 0,
+          bottomTextRotation: next.bottomTextRotation ?? 0,
+          topFontSize: next.topFontSize,
+          bottomFontSize: next.bottomFontSize,
+        },
+      }));
+      return next;
+    });
+  }, [selectedCountry.code, customFlagUrl]);
+
+  // Handle custom flag image change isolated to active country
+  const handleCustomFlagUrlChange = useCallback((url: string | undefined) => {
+    setCustomFlagUrl(url);
+    setCountryCustomizations((prevCustoms) => ({
+      ...prevCustoms,
+      [selectedCountry.code]: {
+        ...(prevCustoms[selectedCountry.code] || {
+          flagOffsetX: textConfig.flagOffsetX ?? 0,
+          flagOffsetY: textConfig.flagOffsetY ?? 0,
+          flagScale: textConfig.flagScale ?? 1.0,
+          flagRotation: textConfig.flagRotation ?? 0,
+        }),
+        customFlagUrl: url,
+      },
+    }));
+  }, [selectedCountry.code, textConfig.flagOffsetX, textConfig.flagOffsetY, textConfig.flagScale, textConfig.flagRotation]);
+
+  // Reset current country's position and scale to clean center
+  const handleResetCountryPosition = useCallback(() => {
+    setTextConfig((prev) => ({
+      ...prev,
+      flagOffsetX: 0,
+      flagOffsetY: 0,
+      flagScale: 1.0,
+      flagRotation: 0,
+      topTextOffsetY: 0,
+      topTextRotation: 0,
+      bottomTextOffsetY: 0,
+      bottomTextRotation: 0,
+    }));
+    setCountryCustomizations((prev) => ({
+      ...prev,
+      [selectedCountry.code]: {
+        flagOffsetX: 0,
+        flagOffsetY: 0,
+        flagScale: 1.0,
+        flagRotation: 0,
+        flagSource: textConfig.flagSource ?? 'original_official',
+        customFlagUrl: undefined,
+        topTextOffsetY: 0,
+        topTextRotation: 0,
+        bottomTextOffsetY: 0,
+        bottomTextRotation: 0,
+        topFontSize: textConfig.fontSize,
+        bottomFontSize: textConfig.fontSize,
+      },
+    }));
+    setCustomFlagUrl(undefined);
+  }, [selectedCountry.code, textConfig.flagSource, textConfig.fontSize]);
+
+  // Replicate current position to all other countries (opt-in sync)
+  const handleApplyPositionToAllCountries = useCallback(() => {
+    const currentOffsets = {
+      flagOffsetX: textConfig.flagOffsetX ?? 0,
+      flagOffsetY: textConfig.flagOffsetY ?? 0,
+      flagScale: textConfig.flagScale ?? 1.0,
+      flagRotation: textConfig.flagRotation ?? 0,
+    };
+    setCountryCustomizations((prev) => {
+      const nextMap = { ...prev };
+      COUNTRIES.forEach((c) => {
+        nextMap[c.code] = {
+          ...(nextMap[c.code] || {}),
+          ...currentOffsets,
+        };
+      });
+      return nextMap;
+    });
+  }, [textConfig.flagOffsetX, textConfig.flagOffsetY, textConfig.flagScale, textConfig.flagRotation]);
 
   // -------------------------------------------------------------
   // UNDO & REDO HISTORY ENGINE (Ctrl + Z and Ctrl + Shift + Z)
@@ -104,6 +315,7 @@ export default function App() {
           textConfig,
           customConfig,
           customFlagUrl,
+          countryCustomizations,
         },
       ];
       historyIndexRef.current = 0;
@@ -125,9 +337,10 @@ export default function App() {
         textConfig,
         customConfig,
         customFlagUrl,
+        countryCustomizations,
       };
 
-      // If nothing actually changed from the current history snapshot, skip
+      // If nothing actually changed from current snapshot, skip
       if (currentIdx >= 0 && historyRef.current[currentIdx]) {
         const current = historyRef.current[currentIdx];
         if (
@@ -135,7 +348,8 @@ export default function App() {
           JSON.stringify(current.style) === JSON.stringify(style) &&
           JSON.stringify(current.textConfig) === JSON.stringify(textConfig) &&
           current.customFlagUrl === customFlagUrl &&
-          JSON.stringify(current.customConfig) === JSON.stringify(customConfig)
+          JSON.stringify(current.customConfig) === JSON.stringify(customConfig) &&
+          JSON.stringify(current.countryCustomizations) === JSON.stringify(countryCustomizations)
         ) {
           return;
         }
@@ -157,7 +371,7 @@ export default function App() {
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [selectedCountry, style, textConfig, customConfig, customFlagUrl]);
+  }, [selectedCountry, style, textConfig, customConfig, customFlagUrl, countryCustomizations]);
 
   const handleUndo = useCallback(() => {
     if (historyIndexRef.current > 0) {
@@ -170,6 +384,9 @@ export default function App() {
         setTextConfig(targetState.textConfig);
         setCustomConfig(targetState.customConfig);
         setCustomFlagUrl(targetState.customFlagUrl);
+        if (targetState.countryCustomizations) {
+          setCountryCustomizations(targetState.countryCustomizations);
+        }
       }
       setCanUndo(historyIndexRef.current > 0);
       setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
@@ -187,6 +404,9 @@ export default function App() {
         setTextConfig(targetState.textConfig);
         setCustomConfig(targetState.customConfig);
         setCustomFlagUrl(targetState.customFlagUrl);
+        if (targetState.countryCustomizations) {
+          setCountryCustomizations(targetState.countryCustomizations);
+        }
       }
       setCanUndo(historyIndexRef.current > 0);
       setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
@@ -200,7 +420,6 @@ export default function App() {
       const isModifier = isMac ? e.metaKey : e.ctrlKey;
       if (!isModifier) return;
 
-      // Avoid capturing when user is actively editing a text input
       const target = e.target as HTMLElement | null;
       const isTextInput =
         target &&
@@ -238,9 +457,11 @@ export default function App() {
         isMounted = false;
       };
     } else {
-      setCustomFlagUrl(undefined);
+      // Revert to country-specific customFlagUrl if stored
+      const stored = countryCustomizations[selectedCountry.code]?.customFlagUrl;
+      setCustomFlagUrl(stored);
     }
-  }, [selectedCountry, apiConfig]);
+  }, [selectedCountry, apiConfig, countryCustomizations]);
 
   // Handle image upload from any source
   const handleUploadImage = (file: File) => {
@@ -252,7 +473,7 @@ export default function App() {
         setCustomConfig({
           imageSrc: src,
           imageElement: img,
-          cropToCircle: true, // Cut corners to transparent circle
+          cropToCircle: true,
           centerX: 0.5,
           centerY: 0.5,
           flagRadius: 0.29,
@@ -325,6 +546,17 @@ export default function App() {
               </button>
             </div>
 
+            {/* Portable PC / Desktop App CTA */}
+            <button
+              type="button"
+              onClick={() => setIsPortableModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-amber-400/50 shadow-sm cursor-pointer transition-all active:scale-95"
+              title="Install Desktop PC app or download 100% offline portable PC version (.zip)"
+            >
+              <Laptop className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Portable PC App</span>
+            </button>
+
             {/* Custom API Button */}
             <button
               type="button"
@@ -390,7 +622,8 @@ export default function App() {
           <div className="lg:col-span-3 h-[520px] lg:h-[760px]">
             <CountryPicker
               selectedCountry={selectedCountry}
-              onSelectCountry={setSelectedCountry}
+              onSelectCountry={handleSelectCountry}
+              customizedCountryCodes={customizedCountryCodes}
             />
           </div>
 
@@ -400,7 +633,7 @@ export default function App() {
               country={selectedCountry}
               style={style}
               textConfig={textConfig}
-              onTextConfigChange={setTextConfig}
+              onTextConfigChange={handleTextConfigChange}
               customConfig={customConfig}
               onUploadImage={handleUploadImage}
               onOpenBatchModal={() => setIsBatchModalOpen(true)}
@@ -415,10 +648,11 @@ export default function App() {
           {/* Right Column: Customization & Calibration Panel (4 cols) */}
           <div className="lg:col-span-4 h-[620px] lg:h-[760px]">
             <SettingsPanel
+              selectedCountry={selectedCountry}
               style={style}
               onStyleChange={setStyle}
               textConfig={textConfig}
-              onTextConfigChange={setTextConfig}
+              onTextConfigChange={handleTextConfigChange}
               customConfig={customConfig}
               onCustomConfigChange={setCustomConfig}
               onUploadImage={handleUploadImage}
@@ -426,7 +660,10 @@ export default function App() {
               onTabChange={setActiveSettingsTab}
               onOpenApiModal={() => setIsApiModalOpen(true)}
               customFlagUrl={customFlagUrl}
-              onCustomFlagUrlChange={setCustomFlagUrl}
+              onCustomFlagUrlChange={handleCustomFlagUrlChange}
+              onResetCountrySettings={handleResetCountryPosition}
+              onApplyPositionToAll={handleApplyPositionToAllCountries}
+              isCurrentCountryCustomized={isCurrentCountryCustomized}
             />
           </div>
         </div>
@@ -440,11 +677,13 @@ export default function App() {
             <span>100% Zero-Background Guarantee: All output PNG files contain transparent alpha channels.</span>
           </div>
           <div className="flex items-center gap-3 font-mono text-[11px] text-slate-400">
-            <span>195+ Sovereign Nations</span>
+            <span>250+ Sovereign Nations</span>
+            <span>·</span>
+            <span>Isolated Flag Positioning</span>
             <span>·</span>
             <span>Up to 2048px Ultra-Res</span>
             <span>·</span>
-            <span>Zero Server Uploads</span>
+            <span>100% Portable Offline PC</span>
           </div>
         </div>
       </footer>
@@ -456,6 +695,7 @@ export default function App() {
         style={style}
         textConfig={textConfig}
         customConfig={customConfig}
+        countryCustomizations={countryCustomizations}
       />
 
       {/* Custom API Modal */}
@@ -467,6 +707,15 @@ export default function App() {
         activeCountry={selectedCountry}
         onApplyApiFlagImage={(url) => setCustomFlagUrl(url)}
       />
+
+      {/* Portable PC Edition Modal */}
+      <PortablePcModal
+        isOpen={isPortableModalOpen}
+        onClose={() => setIsPortableModalOpen(false)}
+      />
+
+      {/* Offline Status Indicator */}
+      <OfflineIndicator />
     </div>
   );
 }

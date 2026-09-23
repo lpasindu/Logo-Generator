@@ -5,6 +5,7 @@ import { COUNTRIES, Country, getFlagUrl } from '../data/countries';
 interface CountryPickerProps {
   selectedCountry: Country;
   onSelectCountry: (country: Country) => void;
+  customizedCountryCodes?: Set<string>;
 }
 
 const REGIONS = ['All', 'Americas', 'Europe', 'Asia', 'Africa', 'Oceania'] as const;
@@ -15,6 +16,7 @@ const POPULAR_CODES = ['US', 'GB', 'DE', 'FR', 'IT', 'JP', 'CA', 'AU', 'KR', 'CH
 export const CountryPicker: React.FC<CountryPickerProps> = ({
   selectedCountry,
   onSelectCountry,
+  customizedCountryCodes,
 }) => {
   const [search, setSearch] = useState('');
   const [selectedRegion, setSelectedRegion] = useState<string>('All');
@@ -150,6 +152,11 @@ export const CountryPicker: React.FC<CountryPickerProps> = ({
                 <div className="truncate">
                   <div className="text-xs font-medium truncate flex items-center gap-1.5">
                     <span>{c.name}</span>
+                    {customizedCountryCodes?.has(c.code) && (
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono border border-amber-500/30 shrink-0">
+                        Isolated
+                      </span>
+                    )}
                   </div>
                   <div className="text-[11px] text-slate-500 font-mono">
                     Badge: <span className="text-amber-400/90">{c.shortName}</span> · {c.code}

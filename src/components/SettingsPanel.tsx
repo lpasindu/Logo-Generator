@@ -35,10 +35,12 @@ import {
   TextStyleMode,
   FlagSourceType,
 } from '../types/badge';
+import { Country } from '../data/countries';
 import { BADGE_STYLES } from '../services/badgeRenderer';
 import { PRESET_BADGE_FONTS, loadGoogleFont, loadFontFromFile } from '../services/fontManager';
 
 interface SettingsPanelProps {
+  selectedCountry?: Country;
   style: BadgeStyleConfig;
   onStyleChange: (style: BadgeStyleConfig) => void;
   textConfig: BadgeTextConfig;
@@ -51,9 +53,13 @@ interface SettingsPanelProps {
   onOpenApiModal?: () => void;
   customFlagUrl?: string;
   onCustomFlagUrlChange?: (url: string | undefined) => void;
+  onResetCountrySettings?: () => void;
+  onApplyPositionToAll?: () => void;
+  isCurrentCountryCustomized?: boolean;
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
+  selectedCountry,
   style,
   onStyleChange,
   textConfig,
@@ -66,6 +72,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onOpenApiModal,
   customFlagUrl,
   onCustomFlagUrlChange,
+  onResetCountrySettings,
+  onApplyPositionToAll,
+  isCurrentCountryCustomized,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fontFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -846,6 +855,50 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
                   Real national flags loaded directly from FlagCDN with sovereign accuracy, heraldic crests, 50 stars, and exact colors.
                 </p>
+              </div>
+            </div>
+
+            {/* Isolated Country Positioning Banner */}
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400 mt-1 shrink-0 animate-pulse shadow-sm shadow-amber-400/50" />
+                  <div>
+                    <div className="text-xs font-bold text-amber-200 flex items-center gap-2">
+                      <span>Isolated Flag Settings: {selectedCountry?.name || 'Selected Flag'}</span>
+                      {isCurrentCountryCustomized && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
+                          Customized
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                      Position, zoom, and rotation adjustments are <strong>isolated to this country</strong> and will not be added to other flags or logos.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons: Reset Current vs Apply All */}
+              <div className="flex items-center gap-2 pt-1 border-t border-amber-500/20">
+                <button
+                  type="button"
+                  onClick={onResetCountrySettings}
+                  className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title="Reset flag position and scale to clean center for this country"
+                >
+                  <RotateCcw className="w-3 h-3 text-amber-400" />
+                  <span>Reset This Flag</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onApplyPositionToAll}
+                  className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700/60 transition-colors flex items-center gap-1.5 cursor-pointer ml-auto"
+                  title="Copy current position and zoom scale to all other countries"
+                >
+                  <span>Sync Position to All Flags</span>
+                </button>
               </div>
             </div>
 

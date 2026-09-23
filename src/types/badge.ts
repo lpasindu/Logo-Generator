@@ -48,6 +48,21 @@ export type FlagSourceType = 'original_official' | 'circular_vector';
 
 export type MovableElement = 'flag' | 'topText' | 'bottomText';
 
+export interface CountryCustomSettings {
+  flagOffsetX: number;
+  flagOffsetY: number;
+  flagScale: number;
+  flagRotation: number;
+  flagSource?: FlagSourceType;
+  customFlagUrl?: string;
+  topTextOffsetY?: number;
+  topTextRotation?: number;
+  bottomTextOffsetY?: number;
+  bottomTextRotation?: number;
+  topFontSize?: number;
+  bottomFontSize?: number;
+}
+
 export interface BadgeTextConfig {
   showTopText: boolean; // Text remove toggle for top
   showBottomText: boolean; // Text remove toggle for bottom
@@ -71,6 +86,7 @@ export interface BadgeTextConfig {
   flagOffsetX?: number; // X position offset in pixels (-200 to +200)
   flagOffsetY?: number; // Y position offset in pixels (-200 to +200)
   flagScale?: number; // Zoom/scale factor (0.5 to 2.5, default 1.0)
+  flagRotation?: number; // Flag rotation angle in degrees (-180 to +180)
   topTextOffsetY?: number; // Top text vertical offset in pixels (-150 to +150)
   topTextRotation?: number; // Top text arc rotation in degrees (-180 to +180)
   bottomTextOffsetY?: number; // Bottom text vertical offset in pixels (-150 to +150)
