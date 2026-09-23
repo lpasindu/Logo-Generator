@@ -1,0 +1,6 @@
+{
+  "name": "World Flag Seal & Badge Studio",
+  "description": "Generate custom 'Made in [Country]' circular badges and seals for every country in the world with transparent PNG export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
