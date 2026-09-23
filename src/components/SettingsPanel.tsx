@@ -35,12 +35,12 @@ import {
   TextStyleMode,
   FlagSourceType,
 } from '../types/badge';
-import { Country } from '../data/countries';
 import { BADGE_STYLES } from '../services/badgeRenderer';
 import { PRESET_BADGE_FONTS, loadGoogleFont, loadFontFromFile } from '../services/fontManager';
+import { Country } from '../data/countries';
 
 interface SettingsPanelProps {
-  selectedCountry?: Country;
+  country?: Country;
   style: BadgeStyleConfig;
   onStyleChange: (style: BadgeStyleConfig) => void;
   textConfig: BadgeTextConfig;
@@ -53,13 +53,12 @@ interface SettingsPanelProps {
   onOpenApiModal?: () => void;
   customFlagUrl?: string;
   onCustomFlagUrlChange?: (url: string | undefined) => void;
-  onResetCountrySettings?: () => void;
-  onApplyPositionToAll?: () => void;
-  isCurrentCountryCustomized?: boolean;
+  onResetCurrentFlagPosition?: () => void;
+  onApplyPositionToAllFlags?: () => void;
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
-  selectedCountry,
+  country,
   style,
   onStyleChange,
   textConfig,
@@ -72,9 +71,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onOpenApiModal,
   customFlagUrl,
   onCustomFlagUrlChange,
-  onResetCountrySettings,
-  onApplyPositionToAll,
-  isCurrentCountryCustomized,
+  onResetCurrentFlagPosition,
+  onApplyPositionToAllFlags,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fontFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -150,14 +148,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-slate-900/60 rounded-2xl border border-slate-800/80 p-4 shadow-xl">
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-1 p-1 bg-slate-950/70 rounded-xl border border-slate-800/80 mb-4 text-xs font-medium">
+      {/* Navigation Tabs - Clean grid alignment */}
+      <div className="grid grid-cols-4 gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800/80 mb-4 text-xs font-semibold">
         <button
           onClick={() => onTabChange('text')}
-          className={`flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 transition-colors ${
+          className={`h-9 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
             activeTab === 'text'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
-              : 'text-slate-400 hover:text-white'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
           }`}
           title="Text & Slogans"
         >
@@ -167,10 +165,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
         <button
           onClick={() => onTabChange('position')}
-          className={`flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 transition-colors ${
+          className={`h-9 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
             activeTab === 'position'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
-              : 'text-slate-400 hover:text-white'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
           }`}
           title="Move Flag & Move Text with Click"
         >
@@ -180,10 +178,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
         <button
           onClick={() => onTabChange('badge')}
-          className={`flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 transition-colors ${
+          className={`h-9 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
             activeTab === 'badge'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
-              : 'text-slate-400 hover:text-white'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
           }`}
           title="Badge Style & Rims"
         >
@@ -193,10 +191,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
         <button
           onClick={() => onTabChange('upload')}
-          className={`flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 transition-colors relative ${
+          className={`h-9 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors relative cursor-pointer ${
             activeTab === 'upload'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
-              : 'text-slate-400 hover:text-white'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
           }`}
           title="Custom Uploaded Badge Template"
         >
@@ -842,6 +840,48 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         {/* ============================================================ */}
         {activeTab === 'position' && (
           <div className="space-y-4">
+            {/* Per-Flag Position Isolation Card */}
+            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-amber-500/30 space-y-2.5 shadow-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="text-xs font-bold text-white">
+                    Per-Flag Position Isolation
+                  </span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-medium border border-emerald-500/30">
+                  Active
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Position &amp; scaling adjustments here are saved <strong className="text-amber-300 font-semibold">strictly for {country?.name || 'this country'}</strong>. Switching countries will not shift other flags.
+              </p>
+              <div className="flex items-center gap-2 pt-1 border-t border-slate-800/80">
+                {onResetCurrentFlagPosition && (
+                  <button
+                    type="button"
+                    onClick={onResetCurrentFlagPosition}
+                    className="flex-1 h-7.5 text-[11px] px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-rose-300 border border-slate-700/80 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    title="Reset this flag back to default center (0, 0, 100%)"
+                  >
+                    <RotateCcw className="w-3 h-3 text-slate-400" />
+                    <span>Reset This Flag</span>
+                  </button>
+                )}
+                {onApplyPositionToAllFlags && (
+                  <button
+                    type="button"
+                    onClick={onApplyPositionToAllFlags}
+                    className="flex-1 h-7.5 text-[11px] px-2.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    title="Apply this exact position to all countries"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span>Apply to All Flags</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Real Flag Guarantee Banner */}
             <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-950/50 to-slate-900 border border-emerald-500/30 flex items-start gap-2.5">
               <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
@@ -855,50 +895,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
                   Real national flags loaded directly from FlagCDN with sovereign accuracy, heraldic crests, 50 stars, and exact colors.
                 </p>
-              </div>
-            </div>
-
-            {/* Isolated Country Positioning Banner */}
-            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2.5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-2.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400 mt-1 shrink-0 animate-pulse shadow-sm shadow-amber-400/50" />
-                  <div>
-                    <div className="text-xs font-bold text-amber-200 flex items-center gap-2">
-                      <span>Isolated Flag Settings: {selectedCountry?.name || 'Selected Flag'}</span>
-                      {isCurrentCountryCustomized && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
-                          Customized
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                      Position, zoom, and rotation adjustments are <strong>isolated to this country</strong> and will not be added to other flags or logos.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons: Reset Current vs Apply All */}
-              <div className="flex items-center gap-2 pt-1 border-t border-amber-500/20">
-                <button
-                  type="button"
-                  onClick={onResetCountrySettings}
-                  className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
-                  title="Reset flag position and scale to clean center for this country"
-                >
-                  <RotateCcw className="w-3 h-3 text-amber-400" />
-                  <span>Reset This Flag</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onApplyPositionToAll}
-                  className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700/60 transition-colors flex items-center gap-1.5 cursor-pointer ml-auto"
-                  title="Copy current position and zoom scale to all other countries"
-                >
-                  <span>Sync Position to All Flags</span>
-                </button>
               </div>
             </div>
 
@@ -980,10 +976,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </button>
               </div>
 
-              {/* D-Pad Buttons for Flag */}
-              <div className="flex items-center justify-center p-2 bg-slate-900/80 rounded-xl border border-slate-800">
-                <div className="grid grid-cols-3 gap-1.5 w-36">
-                  <div></div>
+              {/* D-Pad Buttons for Flag - Aligned 3x3 Grid */}
+              <div className="flex items-center justify-center p-3 bg-slate-900/80 rounded-xl border border-slate-800">
+                <div className="grid grid-cols-3 gap-1.5 w-[132px]">
+                  <div className="w-10 h-10"></div>
                   <button
                     type="button"
                     onClick={() =>
@@ -992,12 +988,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         flagOffsetY: Math.max(-180, (textConfig.flagOffsetY || 0) - 10),
                       })
                     }
-                    className="p-2 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 flex items-center justify-center transition-all shadow-sm active:scale-90"
+                    className="w-10 h-10 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 flex items-center justify-center transition-all shadow-sm active:scale-90 cursor-pointer"
                     title="Move Flag Up 10px"
                   >
                     <ArrowUp className="w-4 h-4" />
                   </button>
-                  <div></div>
+                  <div className="w-10 h-10"></div>
 
                   <button
                     type="button"
@@ -1007,7 +1003,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         flagOffsetX: Math.max(-180, (textConfig.flagOffsetX || 0) - 10),
                       })
                     }
-                    className="p-2 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 flex items-center justify-center transition-all shadow-sm active:scale-90"
+                    className="w-10 h-10 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 flex items-center justify-center transition-all shadow-sm active:scale-90 cursor-pointer"
                     title="Move Flag Left 10px"
                   >
                     <ArrowLeft className="w-4 h-4" />
@@ -1022,7 +1018,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         flagOffsetY: 0,
                       })
                     }
-                    className="p-2 rounded-lg bg-slate-950 hover:bg-slate-700 text-amber-300 flex items-center justify-center transition-all text-[11px] font-bold"
+                    className="w-10 h-10 rounded-lg bg-slate-950 hover:bg-slate-800 text-amber-300 flex items-center justify-center transition-all text-xs font-bold border border-slate-800 cursor-pointer"
                     title="Reset to exact center"
                   >
                     •
@@ -1036,13 +1032,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         flagOffsetX: Math.min(180, (textConfig.flagOffsetX || 0) + 10),
                       })
                     }
-                    className="p-2 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 flex items-center justify-center transition-all shadow-sm active:scale-90"
+                    className="w-10 h-10 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 flex items-center justify-center transition-all shadow-sm active:scale-90 cursor-pointer"
                     title="Move Flag Right 10px"
                   >
                     <ArrowRight className="w-4 h-4" />
                   </button>
 
-                  <div></div>
+                  <div className="w-10 h-10"></div>
                   <button
                     type="button"
                     onClick={() =>
@@ -1051,12 +1047,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         flagOffsetY: Math.min(180, (textConfig.flagOffsetY || 0) + 10),
                       })
                     }
-                    className="p-2 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 flex items-center justify-center transition-all shadow-sm active:scale-90"
+                    className="w-10 h-10 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 flex items-center justify-center transition-all shadow-sm active:scale-90 cursor-pointer"
                     title="Move Flag Down 10px"
                   >
                     <ArrowDown className="w-4 h-4" />
                   </button>
-                  <div></div>
+                  <div className="w-10 h-10"></div>
                 </div>
               </div>
 

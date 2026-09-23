@@ -40,6 +40,9 @@ interface BadgePreviewProps {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  hasFlagCustomization?: boolean;
+  onResetCurrentFlagPosition?: () => void;
+  onApplyPositionToAllFlags?: () => void;
 }
 
 export const BadgePreview: React.FC<BadgePreviewProps> = ({
@@ -55,6 +58,9 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
   onRedo,
   canUndo = false,
   canRedo = false,
+  hasFlagCustomization = false,
+  onResetCurrentFlagPosition,
+  onApplyPositionToAllFlags,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -359,46 +365,43 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-slate-900/70 rounded-2xl border border-slate-800/80 shadow-2xl overflow-hidden backdrop-blur-md">
-      {/* Top Action & Status Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-slate-900/90 border-b border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-sm font-semibold text-slate-200">
-              {country.name}
-            </span>
-            <span className="text-xs text-slate-500">·</span>
-            <span className="text-xs font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-medium">
-              {country.shortName}
-            </span>
-          </div>
-
-          <span className="hidden sm:inline text-xs text-slate-500">·</span>
-          <span className="hidden sm:inline text-xs text-emerald-400 font-medium flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Official Flag (FlagCDN · Non-AI)</span>
+      {/* Top Action & Status Bar - Aligned h-8 controls */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 sm:px-5 py-3 bg-slate-900/90 border-b border-slate-800">
+        <div className="flex items-center gap-2.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+          <span className="text-sm font-bold text-slate-100 truncate max-w-[140px] sm:max-w-none">
+            {country.name}
           </span>
+          <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-semibold border border-slate-700 shrink-0">
+            {country.shortName}
+          </span>
+          {hasFlagCustomization && (
+            <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 shrink-0">
+              Custom Position
+            </span>
+          )}
         </div>
 
-        {/* View & Resolution Controls */}
-        <div className="flex items-center gap-2">
+        {/* View & Resolution Controls - Standardized h-8 height */}
+        <div className="flex items-center gap-1.5">
           {/* Undo / Redo Shortcuts */}
           {onUndo && (
-            <div className="flex items-center bg-slate-800/90 rounded-lg p-0.5 border border-slate-700/60 text-xs">
+            <div className="flex items-center h-8 bg-slate-800/90 rounded-lg p-0.5 border border-slate-700/80 text-xs">
               <button
                 type="button"
                 onClick={onUndo}
                 disabled={!canUndo}
-                className="p-1.5 rounded text-slate-300 hover:text-white disabled:opacity-40 disabled:hover:text-slate-300 hover:bg-slate-700 transition-colors"
+                className="h-full px-2 rounded text-slate-300 hover:text-white disabled:opacity-30 disabled:hover:text-slate-300 hover:bg-slate-700 transition-colors flex items-center cursor-pointer disabled:cursor-not-allowed"
                 title="Undo (Ctrl + Z)"
               >
                 <Undo2 className="w-3.5 h-3.5" />
               </button>
+              <div className="w-[1px] h-3.5 bg-slate-700 my-auto" />
               <button
                 type="button"
                 onClick={onRedo}
                 disabled={!canRedo}
-                className="p-1.5 rounded text-slate-300 hover:text-white disabled:opacity-40 disabled:hover:text-slate-300 hover:bg-slate-700 transition-colors"
+                className="h-full px-2 rounded text-slate-300 hover:text-white disabled:opacity-30 disabled:hover:text-slate-300 hover:bg-slate-700 transition-colors flex items-center cursor-pointer disabled:cursor-not-allowed"
                 title="Redo (Ctrl + Shift + Z)"
               >
                 <Redo2 className="w-3.5 h-3.5" />
@@ -409,60 +412,58 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
           {/* Guide toggle button */}
           <button
             onClick={() => setShowGuides(!showGuides)}
-            className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors ${
+            className={`h-8 px-2 rounded-lg text-xs font-medium border flex items-center gap-1 transition-colors cursor-pointer ${
               showGuides
                 ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-750'
             }`}
             title="Toggle interactive on-canvas movement guides"
           >
-            {showGuides ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-            <span className="hidden md:inline">Guides</span>
+            {showGuides ? <Eye className="w-3.5 h-3.5 text-amber-400" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
+            <span className="hidden 2xl:inline">Guides</span>
           </button>
 
           {/* Background Toggle */}
-          <div className="flex items-center bg-slate-800/90 rounded-lg p-0.5 border border-slate-700/60 text-xs">
+          <div className="flex items-center h-8 bg-slate-800/90 rounded-lg p-0.5 border border-slate-700/80 text-xs">
             <button
               onClick={() => setBgMode('checker_dark')}
-              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
-                bgMode === 'checker_dark' ? 'bg-slate-700 text-amber-300 shadow-sm' : 'text-slate-400 hover:text-slate-200'
+              className={`h-full px-2 rounded-md transition-colors flex items-center gap-1 cursor-pointer ${
+                bgMode === 'checker_dark' ? 'bg-slate-700 text-amber-300 shadow-sm font-semibold' : 'text-slate-400 hover:text-slate-200'
               }`}
               title="Dark Checkerboard (Verify Transparent PNG)"
             >
               <Grid className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Dark Grid</span>
             </button>
             <button
               onClick={() => setBgMode('checker_light')}
-              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
-                bgMode === 'checker_light' ? 'bg-slate-700 text-amber-300 shadow-sm' : 'text-slate-400 hover:text-slate-200'
+              className={`h-full px-2 rounded-md transition-colors flex items-center gap-1 cursor-pointer ${
+                bgMode === 'checker_light' ? 'bg-slate-700 text-amber-300 shadow-sm font-semibold' : 'text-slate-400 hover:text-slate-200'
               }`}
               title="Light Checkerboard"
             >
-              <Grid className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Light Grid</span>
+              <Grid className="w-3.5 h-3.5 opacity-50" />
             </button>
           </div>
 
           {/* Zoom Controls */}
-          <div className="flex items-center bg-slate-800/90 rounded-lg p-0.5 border border-slate-700/60 text-xs">
+          <div className="flex items-center h-8 bg-slate-800/90 rounded-lg p-0.5 border border-slate-700/80 text-xs">
             <button
               onClick={() => setZoom(z => Math.max(0.6, z - 0.15))}
-              className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+              className="h-full px-1.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
               title="Zoom Out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setZoom(1)}
-              className="px-2 py-1 text-slate-400 hover:text-slate-200 transition-colors font-mono text-[11px]"
+              className="h-full px-1.5 text-slate-300 hover:text-white transition-colors font-mono text-[11px] cursor-pointer"
               title="Reset Zoom"
             >
               {Math.round(zoom * 100)}%
             </button>
             <button
               onClick={() => setZoom(z => Math.min(1.8, z + 0.15))}
-              className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+              className="h-full px-1.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
               title="Zoom In"
             >
               <ZoomIn className="w-3.5 h-3.5" />
@@ -474,11 +475,11 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
             id="preview-header-download-btn"
             onClick={handleDownload}
             disabled={downloading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-50"
+            className="h-8 flex items-center gap-1.5 px-2.5 sm:px-3 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-sm shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
             title="Download Transparent PNG Badge Immediately"
           >
-            <Download className="w-3.5 h-3.5 text-slate-950" />
-            <span>Download PNG</span>
+            <Download className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+            <span className="hidden sm:inline whitespace-nowrap">Download</span>
           </button>
         </div>
       </div>
@@ -685,34 +686,34 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
       </div>
 
       {/* Interactive Click-to-Move D-Pad & Controls Bar */}
-      <div className="px-4 py-2.5 bg-slate-950 border-t border-slate-800/90 flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="px-3.5 sm:px-4 py-2 bg-slate-950/95 border-t border-slate-800/90 flex flex-wrap items-center justify-between gap-2.5 text-xs">
         {/* Nudge Arrow Buttons (Click to Move 5px) */}
-        <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">
+        <div className="flex items-center gap-1 bg-slate-900 h-7.5 px-2 rounded-lg border border-slate-800">
           <span className="text-[11px] text-slate-400 mr-1 font-medium">Nudge:</span>
           <button
             onClick={() => nudge(-5, 0)}
-            className="p-1 rounded hover:bg-slate-800 text-slate-300 hover:text-amber-300 transition-colors"
+            className="h-6 w-6 rounded hover:bg-slate-800 text-slate-300 hover:text-amber-300 transition-colors flex items-center justify-center cursor-pointer"
             title="Move Left 5px"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => nudge(0, -5)}
-            className="p-1 rounded hover:bg-slate-800 text-slate-300 hover:text-amber-300 transition-colors"
+            className="h-6 w-6 rounded hover:bg-slate-800 text-slate-300 hover:text-amber-300 transition-colors flex items-center justify-center cursor-pointer"
             title="Move Up 5px"
           >
             <ArrowUp className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => nudge(0, 5)}
-            className="p-1 rounded hover:bg-slate-800 text-slate-300 hover:text-amber-300 transition-colors"
+            className="h-6 w-6 rounded hover:bg-slate-800 text-slate-300 hover:text-amber-300 transition-colors flex items-center justify-center cursor-pointer"
             title="Move Down 5px"
           >
             <ArrowDown className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => nudge(5, 0)}
-            className="p-1 rounded hover:bg-slate-800 text-slate-300 hover:text-amber-300 transition-colors"
+            className="h-6 w-6 rounded hover:bg-slate-800 text-slate-300 hover:text-amber-300 transition-colors flex items-center justify-center cursor-pointer"
             title="Move Right 5px"
           >
             <ArrowRight className="w-3.5 h-3.5" />
@@ -721,24 +722,26 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
 
         {/* Selected Element Quick Modifiers */}
         {selectedElement === 'flag' ? (
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-slate-400">Flag Zoom:</span>
-            <div className="flex items-center bg-slate-900 rounded-lg p-0.5 border border-slate-800">
-              <button
-                onClick={() => zoomFlag(-0.05)}
-                className="px-2 py-0.5 rounded text-slate-300 hover:text-white hover:bg-slate-800 font-bold"
-                title="Zoom Out Flag"
-              >
-                -
-              </button>
-              <span className="px-1.5 text-[11px] font-mono text-amber-300">{flagScalePercent}%</span>
-              <button
-                onClick={() => zoomFlag(0.05)}
-                className="px-2 py-0.5 rounded text-slate-300 hover:text-white hover:bg-slate-800 font-bold"
-                title="Zoom In Flag"
-              >
-                +
-              </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-slate-400">Zoom:</span>
+              <div className="flex items-center bg-slate-900 h-7.5 rounded-lg p-0.5 border border-slate-800">
+                <button
+                  onClick={() => zoomFlag(-0.05)}
+                  className="h-full px-2 rounded text-slate-300 hover:text-white hover:bg-slate-800 font-bold transition-colors cursor-pointer"
+                  title="Zoom Out Flag"
+                >
+                  -
+                </button>
+                <span className="px-1.5 text-[11px] font-mono text-amber-300">{flagScalePercent}%</span>
+                <button
+                  onClick={() => zoomFlag(0.05)}
+                  className="h-full px-2 rounded text-slate-300 hover:text-white hover:bg-slate-800 font-bold transition-colors cursor-pointer"
+                  title="Zoom In Flag"
+                >
+                  +
+                </button>
+              </div>
             </div>
 
             {/* Flag source toggle */}
@@ -750,7 +753,7 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
                   flagSource: prev.flagSource === 'circular_vector' ? 'original_official' : 'circular_vector',
                 }));
               }}
-              className="ml-1 px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-300 border border-slate-800 text-[11px] font-medium"
+              className="h-7.5 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-300 border border-slate-800 text-[11px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
               title="Toggle between Original Sovereign Flag and Circular Vector"
             >
               {textConfig.flagSource === 'circular_vector' ? '⭕ Circular Icon' : '🏛️ Official Real Flag'}
@@ -759,10 +762,10 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
         ) : (
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-slate-400">Arc Rotation:</span>
-            <div className="flex items-center bg-slate-900 rounded-lg p-0.5 border border-slate-800">
+            <div className="flex items-center bg-slate-900 h-7.5 rounded-lg p-0.5 border border-slate-800">
               <button
                 onClick={() => rotateText(-4)}
-                className="p-1 rounded text-slate-300 hover:text-amber-300 hover:bg-slate-800"
+                className="h-full px-2 rounded text-slate-300 hover:text-amber-300 hover:bg-slate-800 flex items-center transition-colors cursor-pointer"
                 title="Rotate Counter-Clockwise 4°"
               >
                 <RotateCcw className="w-3 h-3" />
@@ -772,7 +775,7 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
               </span>
               <button
                 onClick={() => rotateText(4)}
-                className="p-1 rounded text-slate-300 hover:text-amber-300 hover:bg-slate-800"
+                className="h-full px-2 rounded text-slate-300 hover:text-amber-300 hover:bg-slate-800 flex items-center transition-colors cursor-pointer"
                 title="Rotate Clockwise 4°"
               >
                 <RotateCw className="w-3 h-3" />
@@ -781,24 +784,48 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
           </div>
         )}
 
-        {/* Global Reset */}
-        <button
-          onClick={resetAllPositions}
-          className="text-[11px] text-slate-400 hover:text-slate-200 underline underline-offset-2"
-        >
-          Reset All
-        </button>
+        {/* Isolation reset actions */}
+        <div className="flex items-center gap-2">
+          {onResetCurrentFlagPosition ? (
+            <button
+              onClick={onResetCurrentFlagPosition}
+              className="h-7.5 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-rose-300 border border-slate-800 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+              title="Reset this country's flag position to default center"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Reset Flag</span>
+            </button>
+          ) : (
+            <button
+              onClick={resetAllPositions}
+              className="h-7.5 px-2 text-[11px] text-slate-400 hover:text-slate-200 underline underline-offset-2 cursor-pointer"
+            >
+              Reset All
+            </button>
+          )}
+
+          {onApplyPositionToAllFlags && (
+            <button
+              onClick={onApplyPositionToAllFlags}
+              className="h-7.5 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+              title="Apply this exact position to all countries"
+            >
+              <Sparkles className="w-3 h-3 text-amber-400" />
+              <span className="hidden sm:inline">Apply to All</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Bottom Export & Generation Action Bar */}
-      <div className="p-3.5 sm:p-4 bg-slate-900/95 backdrop-blur-md border-t border-slate-800/90 flex flex-wrap items-center justify-between gap-3 shrink-0 sticky bottom-0 z-20 shadow-2xl">
-        {/* Export Resolution Picker */}
+      {/* Bottom Export & Generation Action Bar - Standardized h-9 (36px) height */}
+      <div className="p-3 sm:p-3.5 bg-slate-900/95 backdrop-blur-md border-t border-slate-800/90 flex flex-wrap items-center justify-between gap-3 shrink-0 sticky bottom-0 z-20 shadow-2xl">
+        {/* Export Resolution Picker - Standard h-9 */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-400 font-medium">Export Size:</span>
-          <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700 text-xs">
+          <div className="flex items-center h-9 bg-slate-800 rounded-lg p-0.5 border border-slate-700 text-xs">
             <button
               onClick={() => setExportRes(512)}
-              className={`px-2.5 py-1 rounded transition-colors ${
+              className={`h-full px-2.5 rounded transition-colors cursor-pointer ${
                 exportRes === 512 ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'
               }`}
             >
@@ -806,7 +833,7 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
             </button>
             <button
               onClick={() => setExportRes(1024)}
-              className={`px-2.5 py-1 rounded transition-colors ${
+              className={`h-full px-2.5 rounded transition-colors cursor-pointer ${
                 exportRes === 1024 ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'
               }`}
             >
@@ -814,7 +841,7 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
             </button>
             <button
               onClick={() => setExportRes(2048)}
-              className={`px-2.5 py-1 rounded transition-colors ${
+              className={`h-full px-2.5 rounded transition-colors cursor-pointer ${
                 exportRes === 2048 ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:text-white'
               }`}
             >
@@ -823,12 +850,12 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Standard h-9 */}
         <div className="flex items-center gap-2 sm:gap-2.5">
           {/* Copy to Clipboard */}
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition-all active:scale-95"
+            className="h-9 flex items-center gap-1.5 px-3 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition-all active:scale-95 cursor-pointer"
             title="Copy PNG to clipboard"
           >
             {copied ? (
@@ -849,19 +876,22 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
             id="preview-bottom-download-btn"
             onClick={handleDownload}
             disabled={downloading}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 ring-2 ring-amber-400/40 transition-all active:scale-95 disabled:opacity-50"
+            className="h-9 flex items-center gap-2 px-4 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20 ring-1 ring-amber-400/40 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            title="Download full transparent PNG"
           >
             <Download className="w-4 h-4 text-slate-950" />
-            <span>Download Transparent PNG</span>
+            <span>Download PNG</span>
           </button>
 
           {/* Batch Generate All Countries */}
           <button
             onClick={onOpenBatchModal}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/25 transition-all active:scale-95"
+            className="h-9 flex items-center gap-1.5 px-3.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer"
+            title="Batch generate all countries into a ZIP package"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Batch World</span>
+            <span className="sm:hidden">Batch</span>
           </button>
         </div>
       </div>

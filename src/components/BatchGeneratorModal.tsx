@@ -23,7 +23,7 @@ interface BatchGeneratorModalProps {
   style: BadgeStyleConfig;
   textConfig: BadgeTextConfig;
   customConfig?: CustomFormatConfig;
-  countryCustomizations?: Record<string, CountryCustomSettings>;
+  perCountrySettings?: Record<string, CountryCustomSettings>;
 }
 
 interface GeneratedItem {
@@ -39,7 +39,7 @@ export const BatchGeneratorModal: React.FC<BatchGeneratorModalProps> = ({
   style,
   textConfig,
   customConfig,
-  countryCustomizations,
+  perCountrySettings,
 }) => {
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(
     () => new Set(COUNTRIES.map((c) => c.code))
@@ -112,34 +112,55 @@ export const BatchGeneratorModal: React.FC<BatchGeneratorModalProps> = ({
       setCurrentCountryName(c.name);
       setProgressCount(i + 1);
 
-      // Country-specific isolated positioning or neutral default
-      const cSettings = countryCustomizations?.[c.code];
-      const countryTextConfig: BadgeTextConfig = {
+      // Apply per-country isolated flag position settings if customized
+      const countryOverride = perCountrySettings?.[c.code];
+      const effectiveTextConfig: BadgeTextConfig = {
         ...textConfig,
-        flagOffsetX: cSettings?.flagOffsetX ?? 0,
-        flagOffsetY: cSettings?.flagOffsetY ?? 0,
-        flagScale: cSettings?.flagScale ?? 1.0,
-        flagRotation: cSettings?.flagRotation ?? 0,
-        flagSource: cSettings?.flagSource ?? textConfig.flagSource ?? 'original_official',
-        topTextOffsetY: cSettings?.topTextOffsetY ?? 0,
-        topTextRotation: cSettings?.topTextRotation ?? 0,
-        bottomTextOffsetY: cSettings?.bottomTextOffsetY ?? 0,
-        bottomTextRotation: cSettings?.bottomTextRotation ?? 0,
-        topFontSize: cSettings?.topFontSize ?? textConfig.topFontSize,
-        bottomFontSize: cSettings?.bottomFontSize ?? textConfig.bottomFontSize,
+        flagOffsetX: countryOverride?.flagOffsetX ?? 0,
+        flagOffsetY: countryOverride?.flagOffsetY ?? 0,
+        flagScale: countryOverride?.flagScale ?? 1.0,
+        flagSource: countryOverride?.flagSource ?? textConfig.flagSource,
+        topTextOffsetY: countryOverride?.topTextOffsetY ?? textConfig.topTextOffsetY,
+        bottomTextOffsetY: countryOverride?.bottomTextOffsetY ?? textConfig.bottomTextOffsetY,
+        topTextRotation: countryOverride?.topTextRotation ?? textConfig.topTextRotation,
+        bottomTextRotation: countryOverride?.bottomTextRotation ?? textConfig.bottomTextRotation,
       };
 
-      const countryCustomConfig = cSettings?.customFlagUrl
-        ? { ...(customConfig || { imageSrc: null, imageElement: null, cropToCircle: true, centerX: 0.5, centerY: 0.5, flagRadius: 0.29, topRadius: 0.38, bottomRadius: 0.38, replaceCenterOnly: false, replaceTextAlso: true }), customFlagUrl: cSettings.customFlagUrl }
-        : customConfig;
+      const effectiveStyle: BadgeStyleConfig = {
+        ...style,
+        ...(countryOverride?.flagSurfaceDome !== undefined && { flagSurfaceDome: countryOverride.flagSurfaceDome }),
+        ...(countryOverride?.flagSurfaceReflection !== undefined && { flagSurfaceReflection: countryOverride.flagSurfaceReflection }),
+        ...(countryOverride?.flagSurfaceReflectionAngle !== undefined && { flagSurfaceReflectionAngle: countryOverride.flagSurfaceReflectionAngle }),
+      };
+
+      const effectiveCustomConfig: CustomFormatConfig | undefined = customConfig
+        ? {
+            ...customConfig,
+            customFlagUrl: countryOverride?.customFlagUrl ?? customConfig.customFlagUrl,
+          }
+        : countryOverride?.customFlagUrl
+        ? ({
+            imageSrc: null,
+            imageElement: null,
+            cropToCircle: true,
+            centerX: 0.5,
+            centerY: 0.5,
+            flagRadius: 0.28,
+            topRadius: 0.38,
+            bottomRadius: 0.38,
+            replaceCenterOnly: true,
+            replaceTextAlso: false,
+            customFlagUrl: countryOverride.customFlagUrl,
+          } as CustomFormatConfig)
+        : undefined;
 
       // Render badge
       await renderBadgeToCanvas(
         offscreenCanvas,
         c,
-        style,
-        countryTextConfig,
-        countryCustomConfig,
+        effectiveStyle,
+        effectiveTextConfig,
+        effectiveCustomConfig,
         resolution
       );
 
@@ -493,21 +514,21 @@ export const BatchGeneratorModal: React.FC<BatchGeneratorModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between gap-4">
+        <div className="px-6 py-3.5 bg-slate-900 border-t border-slate-800 flex items-center justify-between gap-4">
           <div className="text-xs text-slate-400">
             Guaranteed without background: All outputs have 100% transparent alpha.
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="h-9 px-4 text-xs font-medium text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
             >
               Close
             </button>
             {zipBlob && !isGenerating && (
               <button
                 onClick={handleDownloadZip}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                className="h-9 flex items-center gap-2 px-5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer"
                 title="Download the compiled .ZIP file containing all generated transparent PNG badges"
               >
                 <Download className="w-4 h-4" />
@@ -517,7 +538,7 @@ export const BatchGeneratorModal: React.FC<BatchGeneratorModalProps> = ({
             <button
               onClick={handleStartBatch}
               disabled={isGenerating || selectedCodes.size === 0}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 active:scale-95 disabled:opacity-50 transition-all"
+              className="h-9 flex items-center gap-2 px-5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
             >
               {isGenerating ? (
                 <>
