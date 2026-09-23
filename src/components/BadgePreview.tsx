@@ -154,14 +154,23 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
 
   // Detect element from canvas coordinates
   const detectElement = (x: number, y: number): MovableElement => {
-    const dx = x - 512;
-    const dy = y - 512;
+    // If user uploaded a full replacement badge without flag overlay, keep selection to text if enabled
+    if (customConfig?.imageSrc && customConfig.templateMode === 'full_replacement') {
+      return y < (customConfig?.centerY ? customConfig.centerY * 1024 : 512) ? 'topText' : 'bottomText';
+    }
+
+    const currentCx = customConfig?.imageSrc ? customConfig.centerX * 1024 : 512;
+    const currentCy = customConfig?.imageSrc ? customConfig.centerY * 1024 : 512;
+    const dx = x - currentCx;
+    const dy = y - currentCy;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    const flagRadiusPx = (textConfig.flagRadius || 0.29) * 1024;
+    const flagRadiusPx = customConfig?.imageSrc
+      ? customConfig.flagRadius * 1024
+      : (textConfig.flagRadius || 0.29) * 1024;
 
     if (dist <= flagRadiusPx + 20) {
       return 'flag';
-    } else if (y < 512) {
+    } else if (y < currentCy) {
       return 'topText';
     } else {
       return 'bottomText';
@@ -352,11 +361,22 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
     }));
   };
 
-  // Current coordinates for visual readout
+  // Center and flag radius coordinates (procedural or calibrated custom template)
+  const cx = customConfig?.imageSrc ? customConfig.centerX * 1024 : 512;
+  const cy = customConfig?.imageSrc ? customConfig.centerY * 1024 : 512;
+  const flagRadiusPx = customConfig?.imageSrc
+    ? customConfig.flagRadius * 1024
+    : (textConfig.flagRadius || 0.29) * 1024;
+  const topRadiusPx = customConfig?.imageSrc
+    ? customConfig.topRadius * 1024
+    : (textConfig.topRadius || 0.38) * 1024;
+  const bottomRadiusPx = customConfig?.imageSrc
+    ? customConfig.bottomRadius * 1024
+    : (textConfig.bottomRadius || 0.38) * 1024;
+
   const flagX = textConfig.flagOffsetX || 0;
   const flagY = textConfig.flagOffsetY || 0;
   const flagScalePercent = Math.round((textConfig.flagScale || 1.0) * 100);
-  const flagRadiusPx = (textConfig.flagRadius || 0.29) * 1024;
 
   const topTextY = textConfig.topTextOffsetY || 0;
   const topTextRot = textConfig.topTextRotation || 0;
@@ -582,40 +602,40 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
               className="absolute inset-0 w-full h-full pointer-events-none z-10"
             >
               {/* Highlight for Center Flag */}
-              {selectedElement === 'flag' && (
+              {selectedElement === 'flag' && (!customConfig?.imageSrc || customConfig.templateMode !== 'full_replacement') && (
                 <g className="transition-all duration-75">
                   {/* Dashed circular selection boundary */}
                   <circle
-                    cx={512}
-                    cy={512}
+                    cx={cx}
+                    cy={cy}
                     r={flagRadiusPx}
                     fill="none"
                     stroke="#f59e0b"
                     strokeWidth={4}
                     strokeDasharray="10 6"
                     className="animate-[spin_40s_linear_infinite]"
-                    style={{ transformOrigin: '512px 512px' }}
+                    style={{ transformOrigin: `${cx}px ${cy}px` }}
                   />
                   {/* Flag Center Crosshair */}
                   <line
-                    x1={512 + flagX - 18}
-                    y1={512 + flagY}
-                    x2={512 + flagX + 18}
-                    y2={512 + flagY}
+                    x1={cx + flagX - 18}
+                    y1={cy + flagY}
+                    x2={cx + flagX + 18}
+                    y2={cy + flagY}
                     stroke="#f59e0b"
                     strokeWidth={3}
                   />
                   <line
-                    x1={512 + flagX}
-                    y1={512 + flagY - 18}
-                    x2={512 + flagX}
-                    y2={512 + flagY + 18}
+                    x1={cx + flagX}
+                    y1={cy + flagY - 18}
+                    x2={cx + flagX}
+                    y2={cy + flagY + 18}
                     stroke="#f59e0b"
                     strokeWidth={3}
                   />
                   <circle
-                    cx={512 + flagX}
-                    cy={512 + flagY}
+                    cx={cx + flagX}
+                    cy={cy + flagY}
                     r={5}
                     fill="#f59e0b"
                   />
@@ -623,12 +643,12 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
               )}
 
               {/* Highlight for Top Text */}
-              {selectedElement === 'topText' && (
+              {selectedElement === 'topText' && (!customConfig?.imageSrc || customConfig.replaceTextAlso) && (
                 <g className="transition-all duration-75">
                   <circle
-                    cx={512}
-                    cy={512 + topTextY}
-                    r={textConfig.topRadius * 1024}
+                    cx={cx}
+                    cy={cy + topTextY}
+                    r={topRadiusPx}
                     fill="none"
                     stroke="#38bdf8"
                     strokeWidth={3}
@@ -638,12 +658,12 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
               )}
 
               {/* Highlight for Bottom Text */}
-              {selectedElement === 'bottomText' && (
+              {selectedElement === 'bottomText' && (!customConfig?.imageSrc || customConfig.replaceTextAlso) && (
                 <g className="transition-all duration-75">
                   <circle
-                    cx={512}
-                    cy={512 + bottomTextY}
-                    r={textConfig.bottomRadius * 1024}
+                    cx={cx}
+                    cy={cy + bottomTextY}
+                    r={bottomRadiusPx}
                     fill="none"
                     stroke="#38bdf8"
                     strokeWidth={3}
@@ -668,7 +688,9 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
         <div className="absolute bottom-3 left-4 flex flex-wrap items-center gap-2 pointer-events-none z-20">
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-950/85 border border-slate-800 text-[11px] text-slate-300 backdrop-blur-sm shadow-md">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            {selectedElement === 'flag' ? (
+            {customConfig?.imageSrc && customConfig.templateMode === 'full_replacement' ? (
+              <span className="font-semibold text-emerald-400">Custom Badge Format Active (Full Replacement)</span>
+            ) : selectedElement === 'flag' ? (
               <span>Flag: X {flagX > 0 ? `+${flagX}` : flagX}px · Y {flagY > 0 ? `+${flagY}` : flagY}px · Zoom {flagScalePercent}%</span>
             ) : selectedElement === 'topText' ? (
               <span>Top Text: Y {topTextY > 0 ? `+${topTextY}` : topTextY}px · Rot {topTextRot}°</span>
@@ -681,7 +703,11 @@ export const BadgePreview: React.FC<BadgePreviewProps> = ({
         {/* Hover / Click Instruction Badge */}
         <div className="absolute top-3 left-4 flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-900/80 border border-slate-800/80 text-[10px] text-slate-400 backdrop-blur-sm">
           <Move className="w-3 h-3 text-amber-400" />
-          <span>Click &amp; drag canvas to move or use arrows below</span>
+          <span>
+            {customConfig?.imageSrc && customConfig.templateMode === 'full_replacement'
+              ? 'Custom badge format replacing standard medallion'
+              : 'Click & drag canvas to move or use arrows below'}
+          </span>
         </div>
       </div>
 

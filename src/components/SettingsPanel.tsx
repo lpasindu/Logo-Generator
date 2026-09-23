@@ -1940,87 +1940,194 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   </div>
                 </div>
 
-                {/* Calibrator Controls */}
-                <div className="space-y-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
-                  <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Center Flag Window Calibration:</span>
+                {/* Custom Format Mode Switcher */}
+                <div className="space-y-2 p-3 bg-slate-950/80 rounded-xl border border-slate-800">
+                  <div className="text-xs font-semibold text-slate-200 flex items-center justify-between">
+                    <span>Badge Replacement Mode:</span>
+                    <span className="text-[10px] font-mono text-amber-400">
+                      {customConfig.templateMode === 'overlay_flag' ? 'Overlay Flag' : 'Full Replacement'}
+                    </span>
                   </div>
-
-                  {/* Flag Radius */}
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400">Center Flag Radius:</span>
-                      <span className="font-mono text-amber-400">
-                        {Math.round(customConfig.flagRadius * 100)}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.15"
-                      max="0.42"
-                      step="0.01"
-                      value={customConfig.flagRadius}
-                      onChange={(e) =>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-900 rounded-lg border border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() =>
                         onCustomConfigChange({
                           ...customConfig,
-                          flagRadius: Number(e.target.value),
+                          templateMode: 'full_replacement',
                         })
                       }
-                      className="w-full accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                    />
-                  </div>
-
-                  {/* Flag Center X */}
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400">Center Position X:</span>
-                      <span className="font-mono text-amber-400">
-                        {Math.round(customConfig.centerX * 100)}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.40"
-                      max="0.60"
-                      step="0.005"
-                      value={customConfig.centerX}
-                      onChange={(e) =>
+                      className={`py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
+                        customConfig.templateMode !== 'overlay_flag'
+                          ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Clean Replacement
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
                         onCustomConfigChange({
                           ...customConfig,
-                          centerX: Number(e.target.value),
+                          templateMode: 'overlay_flag',
                         })
                       }
-                      className="w-full accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                    />
+                      className={`py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
+                        customConfig.templateMode === 'overlay_flag'
+                          ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Overlay Flag Center
+                    </button>
                   </div>
+                  <p className="text-[11px] text-slate-400">
+                    {customConfig.templateMode === 'overlay_flag'
+                      ? 'Replaces the center area with the country flag and dynamic text on your uploaded seal.'
+                      : 'Replaces the entire medallion directly with your uploaded badge format without any circle or ring overlays.'}
+                  </p>
+                </div>
 
-                  {/* Flag Center Y */}
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400">Center Position Y:</span>
-                      <span className="font-mono text-amber-400">
-                        {Math.round(customConfig.centerY * 100)}%
-                      </span>
+                {/* Calibrator Controls (Visible when overlaying flag or text) */}
+                {customConfig.templateMode === 'overlay_flag' && (
+                  <div className="space-y-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                    <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Center Flag Window Calibration:</span>
                     </div>
-                    <input
-                      type="range"
-                      min="0.40"
-                      max="0.60"
-                      step="0.005"
-                      value={customConfig.centerY}
-                      onChange={(e) =>
-                        onCustomConfigChange({
-                          ...customConfig,
-                          centerY: Number(e.target.value),
-                        })
-                      }
-                      className="w-full accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                    />
-                  </div>
 
-                  {/* Auto-crop outside corners toggle (guarantees transparent PNG!) */}
-                  <label className="flex items-center gap-2 pt-2 border-t border-slate-800 cursor-pointer">
+                    {/* Flag Radius */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-400">Center Flag Radius:</span>
+                        <span className="font-mono text-amber-400">
+                          {Math.round(customConfig.flagRadius * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.15"
+                        max="0.42"
+                        step="0.01"
+                        value={customConfig.flagRadius}
+                        onChange={(e) =>
+                          onCustomConfigChange({
+                            ...customConfig,
+                            flagRadius: Number(e.target.value),
+                          })
+                        }
+                        className="w-full accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Flag Center X */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-400">Center Position X:</span>
+                        <span className="font-mono text-amber-400">
+                          {Math.round(customConfig.centerX * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.40"
+                        max="0.60"
+                        step="0.005"
+                        value={customConfig.centerX}
+                        onChange={(e) =>
+                          onCustomConfigChange({
+                            ...customConfig,
+                            centerX: Number(e.target.value),
+                          })
+                        }
+                        className="w-full accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Flag Center Y */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-400">Center Position Y:</span>
+                        <span className="font-mono text-amber-400">
+                          {Math.round(customConfig.centerY * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.40"
+                        max="0.60"
+                        step="0.005"
+                        value={customConfig.centerY}
+                        onChange={(e) =>
+                          onCustomConfigChange({
+                            ...customConfig,
+                            centerY: Number(e.target.value),
+                          })
+                        }
+                        className="w-full accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Gold Seam Ring Toggle */}
+                    <label className="flex items-center gap-2 pt-2 border-t border-slate-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={customConfig.showInnerRing !== false}
+                        onChange={(e) =>
+                          onCustomConfigChange({
+                            ...customConfig,
+                            showInnerRing: e.target.checked,
+                          })
+                        }
+                        className="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-700 focus:ring-0"
+                      />
+                      <span className="text-xs text-slate-300 font-medium">
+                        Draw inner gold bezel ring on flag seam
+                      </span>
+                    </label>
+
+                    {/* 3D Glass Dome Sheen Toggle */}
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={customConfig.showDomeReflection !== false}
+                        onChange={(e) =>
+                          onCustomConfigChange({
+                            ...customConfig,
+                            showDomeReflection: e.target.checked,
+                          })
+                        }
+                        className="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-700 focus:ring-0"
+                      />
+                      <span className="text-xs text-slate-300 font-medium">
+                        Apply 3D convex glass sheen over flag
+                      </span>
+                    </label>
+
+                    {/* Replace text also toggle */}
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={customConfig.replaceTextAlso}
+                        onChange={(e) =>
+                          onCustomConfigChange({
+                            ...customConfig,
+                            replaceTextAlso: e.target.checked,
+                          })
+                        }
+                        className="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-700 focus:ring-0"
+                      />
+                      <span className="text-xs text-slate-300 font-medium">
+                        Also overlay dynamic "Made in [Country]" text
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                {/* Auto-crop outside corners toggle (guarantees transparent PNG!) */}
+                <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={customConfig.cropToCircle}
@@ -2032,27 +2139,16 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       }
                       className="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-700 focus:ring-0"
                     />
-                    <span className="text-xs text-slate-300 font-medium">
-                      Auto-cut corners to transparent circle PNG
-                    </span>
-                  </label>
-
-                  {/* Replace text also toggle */}
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={customConfig.replaceTextAlso}
-                      onChange={(e) =>
-                        onCustomConfigChange({
-                          ...customConfig,
-                          replaceTextAlso: e.target.checked,
-                        })
-                      }
-                      className="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-700 focus:ring-0"
-                    />
-                    <span className="text-xs text-slate-300 font-medium">
-                      Also overlay dynamic "Made in [Country]" text
-                    </span>
+                    <div>
+                      <span className="text-xs text-slate-300 font-medium block">
+                        Auto-cut corners to transparent circular seal
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        {customConfig.cropToCircle
+                          ? 'Trims square outer corners for a circular PNG'
+                          : 'Keeps full uploaded image dimensions intact without circle clipping'}
+                      </span>
+                    </div>
                   </label>
                 </div>
               </div>

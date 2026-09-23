@@ -787,7 +787,14 @@ async function renderCustomUploadedBadge(
 
   ctx.drawImage(userImg, 0, 0, targetSize, targetSize);
 
-  // 2. Replace Center Flag Window
+  // If in 'full_replacement' mode, user has uploaded their complete custom badge graphics
+  // directly replacing the medallion (standalone custom badge format)
+  if (customConfig.templateMode === 'full_replacement') {
+    ctx.restore();
+    return;
+  }
+
+  // 2. Replace Center Flag Window (when overlaying country flag into custom format)
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, flagR, 0, Math.PI * 2);
@@ -825,20 +832,24 @@ async function renderCustomUploadedBadge(
   }
 
   // 3D Flag Dome & Reflection Lighting Effects on custom template
-  const customDome = customConfig.flagSurfaceDome !== undefined ? customConfig.flagSurfaceDome : 0.4;
-  const customRef = customConfig.flagSurfaceReflection !== undefined ? customConfig.flagSurfaceReflection : 0.35;
-  const customRefAngle = customConfig.flagSurfaceReflectionAngle ?? -35;
+  if (customConfig.showDomeReflection !== false) {
+    const customDome = customConfig.flagSurfaceDome !== undefined ? customConfig.flagSurfaceDome : 0.4;
+    const customRef = customConfig.flagSurfaceReflection !== undefined ? customConfig.flagSurfaceReflection : 0.35;
+    const customRefAngle = customConfig.flagSurfaceReflectionAngle ?? -35;
 
-  drawFlagSurfaceDomeAndReflection(ctx, cx, cy, flagR, customDome, customRef, customRefAngle);
+    drawFlagSurfaceDomeAndReflection(ctx, cx, cy, flagR, customDome, customRef, customRefAngle);
+  }
 
   ctx.restore(); // end flag clip
 
-  // Draw inner gold ring bevel over flag seam
-  ctx.beginPath();
-  ctx.arc(cx, cy, flagR, 0, Math.PI * 2);
-  ctx.lineWidth = 6 * scale;
-  ctx.strokeStyle = '#c49a37';
-  ctx.stroke();
+  // Draw inner gold ring bevel over flag seam (optional, default true)
+  if (customConfig.showInnerRing !== false) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, flagR, 0, Math.PI * 2);
+    ctx.lineWidth = 6 * scale;
+    ctx.strokeStyle = '#c49a37';
+    ctx.stroke();
+  }
 
   // 3. If user requested replacing text as well
   if (customConfig.replaceTextAlso) {

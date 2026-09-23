@@ -88,6 +88,9 @@ export interface CustomFormatConfig {
   bottomRadius: number;
   replaceCenterOnly: boolean; // Keep base badge, only overlay new flag
   replaceTextAlso: boolean; // Erase base text and draw new curved text
+  showInnerRing?: boolean; // Draw inner golden bevel ring around the center flag (defaults to true)
+  showDomeReflection?: boolean; // Apply 3D convex dome and glass sheen over flag (defaults to true)
+  templateMode?: 'overlay_flag' | 'full_replacement'; // 'overlay_flag' = insert dynamic flag & text into badge; 'full_replacement' = clean standalone custom badge
   flagSurfaceDome?: number; // 0 to 1 (Flag 3D convex dome depth)
   flagSurfaceReflection?: number; // 0 to 1 (Flag specular glass sheen/reflection)
   flagSurfaceReflectionAngle?: number; // -90 to +90 degrees

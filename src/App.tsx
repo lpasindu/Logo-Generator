@@ -441,14 +441,17 @@ export default function App() {
         setCustomConfig({
           imageSrc: src,
           imageElement: img,
-          cropToCircle: true, // Cut corners to transparent circle
+          cropToCircle: false, // Default false so the uploaded format is untouched and unclipped
           centerX: 0.5,
           centerY: 0.5,
           flagRadius: 0.29,
           topRadius: 0.38,
           bottomRadius: 0.38,
           replaceCenterOnly: false,
-          replaceTextAlso: true,
+          replaceTextAlso: false,
+          showInnerRing: false,
+          showDomeReflection: false,
+          templateMode: 'full_replacement', // Default directly replaces the badge cleanly with the uploaded image
         });
         setActiveSettingsTab('upload');
       };
